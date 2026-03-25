@@ -1,17 +1,20 @@
 import os
-import json
+import chromadb
 from datetime import datetime
 from groq import Groq
-import chromadb
 from sentence_transformers import SentenceTransformer
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
-
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+from dotenv import load_dotenv
+
+load_dotenv()
+
+DB_PATH = "./chroma_db"
+COLLECTION_NAME = "rubber_knowledge"
 
 app = FastAPI(title="FARMO IoT & Advisory Engine")
 
-# Enable CORS for Mobile/Web Client Access
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -35,59 +38,30 @@ class SensorData(BaseModel):
     humidity: float = Field(..., example=80.0)
     temperature: float = Field(..., example=29.0)
 
-# Initialize Groq Client
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+embedder = SentenceTransformer("all-MiniLM-L6-v2")
+chroma_client = chromadb.PersistentClient(path=DB_PATH)
+collection = chroma_client.get_collection(COLLECTION_NAME)
+
+# Using the Groq Key from environment variables
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+if not GROQ_API_KEY:
+    # Fallback or error if not found (don't hardcode here)
+    pass
 groq_client = Groq(api_key=GROQ_API_KEY)
 
-# Initialize ChromaDB (Local Storage)
-client = chromadb.PersistentClient(path="./chroma_db")
-collection = client.get_or_create_collection(name="rubber_advisory")
-
-# Embedding Model (Local CPU-friendly model)
-embed_model = SentenceTransformer('all-MiniLM-L6-v2')
-
 class ChatRequest(BaseModel):
-    query: str
+    message: str
+    image_finding: str = None
 
-class AdvisoryResponse(BaseModel):
-    answer: str
-    sources: list[str]
-
-@app.on_event("startup")
-async def startup_event():
-    # Load advisory documentation on startup for ingestion if needed
-    if collection.count() == 0:
-        print("📥 Initializing Knowledge Base...")
-        try:
-            # We look for advisory.json in both app and mobile directories
-            advisory_path = "../../farmo-mobile/src/advisory.json"
-            if not os.path.exists(advisory_path):
-                 advisory_path = "../farmo-mobile/src/advisory.json" # Relative from root
-            
-            with open(advisory_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                
-            documents = []
-            ids = []
-            for name, details in data.items():
-                content = f"Disease: {name}. Overview: {details['overview']}. Treatment: {'. '.join(details['treatment'])}. Prevention: {'. '.join(details['prevention'])}."
-                # Optionally add Malayalam if index is meant for both
-                # content += f" Malayalam Treatmend: {details.get('malayalam', '')}"
-                
-                documents.append(content)
-                ids.append(name)
-            
-            embeddings = embed_model.encode(documents).tolist()
-            collection.add(
-                documents=documents,
-                embeddings=embeddings,
-                ids=ids
-            )
-            print(f"✅ Knowledge Base Loaded: {len(ids)} documents.")
-        except Exception as e:
-            print(f"❌ Initialization Failed: {e}")
-
-# --- IoT Endpoints ---
+def retrieve_context(query: str, top_k: int = 4) -> tuple[str, list[str]]:
+    query_embedding = embedder.encode([query]).tolist()
+    results = collection.query(
+        query_embeddings=query_embedding,
+        n_results=top_k
+    )
+    context = "\n\n".join(results["documents"][0])
+    sources = results["ids"][0]
+    return context, sources
 
 @app.post("/iot")
 async def receive_iot(data: SensorData):
@@ -101,57 +75,52 @@ async def receive_iot(data: SensorData):
 async def get_data():
     return latest_data
 
-# --- Existing Chat Endpoint ---
-
-@app.post("/chat", response_model=AdvisoryResponse)
-async def chat(request: ChatRequest):
+@app.post("/chat")
+def chat(req: ChatRequest):
     try:
-        # 1. Embed user query
-        query_embedding = embed_model.encode([request.query]).tolist()
-        
-        # 2. Search ChromaDB
-        results = collection.query(
-            query_embeddings=query_embedding,
-            n_results=2
-        )
-        
-        context = "\n\n".join(results['documents'][0])
-        sources = results['ids'][0]
-        
-        # 3. Generate Answer with Groq Cloud (Ultra-Fast Inference)
-        prompt = f"""
-        You are FARMO Advisory, a specialized AI for rubber farming in Kerala.
-        Use the following context extracted from authorized Rubber Board guides to answer the user's question accurately.
-        If the question is in Malayalam, answer in Malayalam.
-        
-        Agricultural Context:
-        {context}
-        
-        Farmer's Question: {request.query}
-        
-        Answer (provide practical, localized advice):
-        """
-        
-        chat_completion = groq_client.chat.completions.create(
+        context, sources = retrieve_context(req.message)
+
+        system_prompt = f"""You are an expert rubber plantation assistant helping farmers.
+You specialize in rubber plant diseases, treatments, tapping practices, and seasonal care.
+
+Use the following knowledge base to answer accurately:
+
+--- KNOWLEDGE BASE ---
+{context}
+--- END KNOWLEDGE BASE ---
+
+Guidelines:
+- Give practical farmer-friendly advice
+- If a disease is detected via image, prioritize that in your response
+- If the answer is not in the knowledge base, say so clearly
+- Keep responses concise and actionable"""
+
+        user_message = req.message
+        if req.image_finding:
+            user_message = f"Image analysis detected: {req.image_finding}\n\nFarmer's question: {req.message}"
+
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
             messages=[
-                {"role": "system", "content": "You are a specialized agricultural expert for rubber plantations in Kerala."},
-                {"role": "user", "content": prompt}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message}
             ],
-            model="llama3-70b-8192", # High reasoning model
-            temperature=0.7,
-            max_tokens=1024
+            temperature=0.3
         )
-        
-        answer = chat_completion.choices[0].message.content
-        
-        return AdvisoryResponse(
-            answer=answer,
-            sources=sources
-        )
+
+        return {
+            "answer": response.choices[0].message.content,
+            "sources": sources
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.get("/")
+def root():
+    return {"status": "FARMO Rubber Plantation Chatbot is running"}
+
 if __name__ == "__main__":
     import uvicorn
-    # Use port 10000 for Render deployment
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    # Use port 10000 for consistency with Render deployment and Local Access
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
