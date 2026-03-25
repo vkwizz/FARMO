@@ -1,0 +1,7 @@
+groq
+chromadb
+sentence-transformers
+fastapi
+uvicorn
+python-dotenv
+pypdf
