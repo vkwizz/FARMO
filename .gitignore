@@ -1,0 +1,24 @@
+# Dependencies
+**/node_modules/
+**/package-lock.json
+
+# Next.js build
+farmo-app/.next/
+farmo-app/out/
+farmo-app/build/
+
+# Expo build
+farmo-mobile/.expo/
+farmo-mobile/dist/
+farmo-mobile/.eas/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS files
+.DS_Store
+Thumbs.db

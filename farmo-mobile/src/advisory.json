@@ -1,0 +1,56 @@
+{
+  "Anthracnose": {
+    "overview": "Caused by Colletotrichum gloeosporioides. Appears as dark, sunken lesions on leaves.",
+    "treatment": ["Apply copper-based fungicides (Copper Oxychloride 50% WP) at 2–3 g/L.", "Spray Mancozeb every 10–14 days in wet seasons.", "Destroy infected leaves."],
+    "prevention": ["Avoid overhead irrigation.", "Maintain proper tree spacing for air flow."],
+    "malayalam": "ഇലകളിൽ കരിംചീച്ചിൽ രോഗം കണ്ടെത്തി. കോപ്പർ ഓക്സിക്ലോറൈഡ് തളിക്കുക."
+  },
+  "Colletorichum-leaf-disease": {
+    "overview": "Caused by Colletotrichum gloeosporioides. Appears as dark, sunken lesions on leaves.",
+    "treatment": ["Apply copper-based fungicides (Copper Oxychloride 50% WP) at 2–3 g/L.", "Spray Mancozeb every 10–14 days in wet seasons.", "Destroy infected leaves."],
+    "prevention": ["Avoid overhead irrigation.", "Maintain proper tree spacing for air flow."],
+    "malayalam": "ഇലകളിൽ കരിംചീച്ചിൽ രോഗം കണ്ടെത്തി. കോപ്പർ ഓക്സിക്ലോറൈഡ് തളിക്കുക."
+  },
+  "Birds-eye": {
+    "overview": "Caused by Helminthosporium heveae. Named for the bird's-eye pattern on infected leaves.",
+    "treatment": ["Apply Carbendazim (Bavistin) twice a month.", "Use Chlorothalonil 75% WP as a contact fungicide.", "Burn fallen infected leaves."],
+    "prevention": ["Plant resistant clones.", "Ensure adequate drainage around trees."],
+    "malayalam": "പക്ഷിക്കണ്ണ് രോഗം കണ്ടെത്തി. കാർബൻഡാസിം ഉപയോഗിക്കുക."
+  },
+  "Corynespora": {
+    "overview": "Caused by Corynespora cassiicola. One of the most serious rubber leaf diseases.",
+    "treatment": ["Apply Hexaconazole 5% EC at 2 mL/L (Highly effective).", "Use Propiconazole 25% EC.", "Remove heavily infected trees in outbreak zones."],
+    "prevention": ["Avoid susceptible clones like RRIM 600.", "Monitor closely during wet season."],
+    "malayalam": "കോറിനെസ്പോറ ഇലകൊഴിച്ചിൽ രോഗം. ഹെക്സാകൊണസോൾ ഉടൻ തളിക്കുക."
+  },
+  "Healthy": {
+    "overview": "The leaf shows no signs of disease.",
+    "treatment": ["No treatment required."],
+    "prevention": ["Maintain regular fertilization.", "Monitor once a month."],
+    "malayalam": "ഇലകൾ ആരോഗ്യമുള്ളവയാണ്. പതിവ് കിഴങ്ങ് പ്രയോഗം തുടരുക."
+  },
+  "Dry_Leaf": {
+    "overview": "Physiological or stress-related drying, often associated with drought or nutrient deficiency.",
+    "treatment": ["Irrigate during dry spells.", "Apply foliar spray of Urea + ZnSO4.", "Apply mulch to retain moisture."],
+    "prevention": ["Maintain proper soil drainage.", "Use basal fertilizer twice yearly."],
+    "malayalam": "ഇലകൾ ഉണങ്ങി തുടങ്ങിയിരിക്കുന്നു. നനയ്ക്കുകയും മണ്ണ് നന്നായി സൂക്ഷിക്കുകയും ചെയ്യുക."
+  },
+  "Leaf_Spot": {
+    "overview": "General category of fungal leaf spot diseases.",
+    "treatment": ["Apply Mancozeb + Carbendazim combination.", "Burn fallen leaves."],
+    "prevention": ["Reduce leaf wetness by improving canopy air flow."],
+    "malayalam": "ഇലകളിൽ പുള്ളി രോഗം കണ്ടെത്തി. മാങ്കോസെബ് പ്രയോഗിക്കുക."
+  },
+  "Pesta": {
+    "overview": "Powdery scab-like disease affecting leaves in humid conditions.",
+    "treatment": ["Apply Sulphur 80% WP (Very effective).", "Remove heavily affected branches."],
+    "prevention": ["Avoid excess nitrogen fertilizer.", "Improve sunlight penetration into canopy."],
+    "malayalam": "പെസ്റ്റ രോഗം കണ്ടെത്തി. സൾഫർ പ്രയോഗിക്കുക."
+  },
+  "Powdery-mildew": {
+    "overview": "Caused by Oidium heveae. Appears as powdery white spots on young leaves.",
+    "treatment": ["Apply wettable sulphur 80% WP (2 g/L).", "Spray Carbendazim 50% WP (0.5 g/L).", "Repeat every 10 days."],
+    "prevention": ["Maintain open canopy for sunlight.", "Monitor during winter flowering season."],
+    "malayalam": "പൊടിപ്പൻ രോഗം കണ്ടെത്തി. ഗന്ദകം ഉടൻ തളിക്കുക."
+  }
+}
