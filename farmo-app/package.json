@@ -1,0 +1,26 @@
+{
+  "name": "farmo-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "framer-motion": "^12.35.0",
+    "lucide-react": "^0.577.0",
+    "next": "16.1.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-dropzone": "^15.0.0",
+    "react-hot-toast": "^2.6.0",
+    "recharts": "^3.7.0"
+  },
+  "devDependencies": {
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "onnxruntime-web": "^1.24.3"
+  }
+}
