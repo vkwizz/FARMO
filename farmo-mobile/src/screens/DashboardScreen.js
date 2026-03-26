@@ -91,17 +91,36 @@ export default function DashboardScreen({ navigation }) {
     const fetchIoTData = async () => {
         const PRIMARY_URL = 'https://rubber-chatbot-api.onrender.com/data';
         const FALLBACK_URL = 'http://10.124.244.29:10000/data';
-        try {
-            let res = await fetch(PRIMARY_URL).catch(() => null);
-            if (!res || !res.ok) {
-                res = await fetch(FALLBACK_URL).catch(() => null);
+
+        const performFetch = async (url) => {
+            const response = await fetch(url).catch(() => null);
+            if (!response || !response.ok) return null;
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                try {
+                    return await response.json();
+                } catch (e) {
+                    console.warn(`JSON parse error on ${url}`);
+                    return null;
+                }
             }
-            if (res && res.ok) {
-                const data = await res.json();
+            return null;
+        };
+
+        try {
+            let data = await performFetch(PRIMARY_URL);
+            if (!data) {
+                data = await performFetch(FALLBACK_URL);
+            }
+
+            if (data) {
                 setIotData(data);
                 setIotError(false);
+            } else {
+                setIotError(true);
             }
         } catch (e) {
+            console.error("IoT fetch crash:", e);
             setIotError(true);
         }
     };
