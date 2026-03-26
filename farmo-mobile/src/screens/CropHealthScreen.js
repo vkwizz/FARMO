@@ -57,36 +57,42 @@ export default function CropHealthScreen() {
                 symptoms: symptoms
             };
 
-            let res = await fetch(PRIMARY_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).catch(() => null);
+            const fetchPrediction = async (url) => {
+                console.log(`🤖 Attempting AI prediction at: ${url}`);
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const contentType = response.headers.get("content-type");
+                if (response.ok && contentType && contentType.includes("application/json")) {
+                    return await response.json();
+                } else {
+                    const text = await response.text();
+                    console.warn(`⚠️ API at ${url} returned non-JSON: ${text.substring(0, 100)}`);
+                    return null;
+                }
+            };
 
-            // Robust JSON check
-            if (res && res.ok && res.headers.get("content-type")?.includes("application/json")) {
-                const data = await res.json();
-                setResult(data);
-                setAnalyzing(false);
-                return;
+            let data = await fetchPrediction(PRIMARY_URL).catch(() => null);
+            
+            if (!data) {
+                console.warn("Retrying with Local Fallback AI...");
+                data = await fetchPrediction(FALLBACK_URL).catch((err) => {
+                    console.error("Local AI also failed:", err);
+                    return null;
+                });
             }
 
-            console.warn("Primary AI failed or returned non-JSON. Trying local fallback...");
-            res = await fetch(FALLBACK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).catch(() => null);
-
-            if (res && res.ok && res.headers.get("content-type")?.includes("application/json")) {
-                const data = await res.json();
+            if (data) {
                 setResult(data);
             } else {
-                throw new Error("Prediction Service Unavailable");
+                throw new Error("All AI prediction endpoints failed.");
             }
         } catch (err) {
-            console.error(err);
-            Alert.alert("Analysis Error", "Failed to connect to AI Predictor.");
+            console.error("ANALYSIS_CRASH:", err);
+            Alert.alert("Analysis Error", "Failed to connect to AI Predictor. Please check your network or try again later.");
         } finally {
             setAnalyzing(false);
         }
@@ -173,17 +179,32 @@ export default function CropHealthScreen() {
                     {result && !analyzing && (
                         <View style={styles.resultBox}>
                             <View style={styles.resultHeader}>
-                                <View>
+                                <View style={{ flex: 1 }}>
                                     <Text style={styles.resultDisease}>🦠 {result.disease}</Text>
                                     <Text style={styles.resultPathogen}>{result.pathogen}</Text>
                                 </View>
-                                <Badge label={`${result.confidence}%`} type="warning" />
+                                <Badge label={`${result.confidence}% Match`} type={result.confidence > 90 ? "success" : "warning"} />
                             </View>
-                            <Text style={styles.resultLabel}>{t('treatmentLabel')}:</Text>
+                            
+                            <Text style={styles.resultLabel}>🌿 {t('treatmentLabel')}:</Text>
                             <Text style={styles.resultTreatment}>{result.treatment}</Text>
+
+                            {result.solutions_detail?.prevention?.length > 0 && (
+                                <>
+                                    <Text style={styles.resultLabel}>🛡️ Prevention:</Text>
+                                    {result.solutions_detail.prevention.map((p, idx) => (
+                                        <Text key={idx} style={styles.bulletItem}>• {p}</Text>
+                                    ))}
+                                </>
+                            )}
+
                             <View style={styles.mlBox}>
-                                <Text style={styles.mlText}>🌿 {result.malayalam}</Text>
+                                <Text style={styles.mlText}>📍 {result.malayalam}</Text>
                             </View>
+
+                            {result.assistant && (
+                                <Text style={styles.assistantTag}>Analyzed by: {result.assistant}</Text>
+                            )}
                         </View>
                     )}
                 </Card>
@@ -267,6 +288,8 @@ const styles = StyleSheet.create({
     diseaseRow: { flexDirection: 'row', alignItems: 'center' },
     diseaseName: { fontSize: FONTS.sizes.base, fontWeight: '700', color: COLORS.textDark },
     diseasePathogen: { fontSize: FONTS.sizes.xs, color: COLORS.textGray, fontStyle: 'italic' },
+    bulletItem: { fontSize: 13, color: COLORS.textDark, marginLeft: 12, marginBottom: 4, lineHeight: 18 },
+    assistantTag: { fontSize: 10, color: COLORS.textLight, marginTop: 12, fontStyle: 'italic', textAlign: 'right' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
     modalContent: { width: '80%', backgroundColor: 'white', borderRadius: 24, padding: 24, ...SHADOW.card },
     modalTitle: { fontSize: 20, fontWeight: '800', color: '#1a1a1a', marginBottom: 20, textAlign: 'center' },

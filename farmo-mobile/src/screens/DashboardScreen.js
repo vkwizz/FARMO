@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, ScrollView,
     TouchableOpacity, TextInput, Image, Dimensions,
-    ActivityIndicator, Modal, FlatList
+    ActivityIndicator, Modal, FlatList,
+    StatusBar
 } from 'react-native';
 
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,6 +12,7 @@ import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SectionHeader, Card } from '../components/UI';
 import { useTranslation } from '../contexts/LanguageContext';
+import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
@@ -89,17 +91,36 @@ export default function DashboardScreen({ navigation }) {
     const fetchIoTData = async () => {
         const PRIMARY_URL = 'https://rubber-chatbot-api.onrender.com/data';
         const FALLBACK_URL = 'http://10.124.244.29:10000/data';
-        try {
-            let res = await fetch(PRIMARY_URL).catch(() => null);
-            if (!res || !res.ok) {
-                res = await fetch(FALLBACK_URL).catch(() => null);
+
+        const performFetch = async (url) => {
+            const response = await fetch(url).catch(() => null);
+            if (!response || !response.ok) return null;
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                try {
+                    return await response.json();
+                } catch (e) {
+                    console.warn(`JSON parse error on ${url}`);
+                    return null;
+                }
             }
-            if (res && res.ok) {
-                const data = await res.json();
+            return null;
+        };
+
+        try {
+            let data = await performFetch(PRIMARY_URL);
+            if (!data) {
+                data = await performFetch(FALLBACK_URL);
+            }
+
+            if (data) {
                 setIotData(data);
                 setIotError(false);
+            } else {
+                setIotError(true);
             }
         } catch (e) {
+            console.error("IoT fetch crash:", e);
             setIotError(true);
         }
     };
@@ -144,79 +165,166 @@ export default function DashboardScreen({ navigation }) {
 
     return (
         <View style={styles.screen}>
-            <LinearGradient colors={['#0F4D31', '#166534']} style={[styles.headerGradient, { height: width * 0.72 }]} />
+            <StatusBar barStyle="light-content" />
+            <LinearGradient 
+                colors={['#064E3B', '#065F46', '#059669']} 
+                style={[styles.headerGradient, { height: width * 0.95 }]} 
+            />
 
-            <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 10 }]} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+                contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 10 }]} 
+                showsVerticalScrollIndicator={false}
+            >
+                {/* Greeting Header */}
                 <View style={styles.topRow}>
                     <View>
-                        <Text style={styles.greetText}>{t('hello')}, VK</Text>
-                        <TouchableOpacity style={styles.dateSelector}>
-                            <Text style={styles.dateText}>{formattedDate} ⌵</Text>
+                        <Text style={styles.helloText}>Hello,</Text>
+                        <Text style={styles.greetText}>Good Morning</Text>
+                        <Text style={styles.dateHeaderText}>{formattedDate}</Text>
+                    </View>
+                    <View style={styles.headerIcons}>
+                        <TouchableOpacity 
+                            style={styles.iconCircle} 
+                            onPress={() => setLangModalVisible(true)}
+                        >
+                            <Ionicons name="globe-outline" size={20} color="#E0F2FE" />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.iconCircle}>
+                            <Ionicons name="notifications-outline" size={20} color="#FDE68A" />
                         </TouchableOpacity>
                     </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                         <TouchableOpacity style={styles.langBtnSmall} onPress={() => setLangModalVisible(true)}>
-                            <Text style={{ fontSize: 18 }}>🌐</Text>
-                        </TouchableOpacity>
-                        <Image source={require('../../assets/vk.png')} style={styles.avatar} />
-                    </View>
+                </View>
+
+                {/* Search Bar */}
+                <View style={styles.searchContainer}>
+                    <TextInput 
+                        placeholder="Search here..." 
+                        placeholderTextColor="rgba(255,255,255,0.6)"
+                        style={styles.searchInput}
+                    />
+                    <TouchableOpacity>
+                        <Ionicons name="search" size={20} color="rgba(255,255,255,0.6)" />
+                    </TouchableOpacity>
                 </View>
 
                 {/* Weather Card */}
                 <Card style={styles.weatherCard}>
                     {loading ? (
-                        <View style={{ height: 180, justifyContent: 'center', alignItems: 'center' }}>
+                        <View style={{ height: 200, justifyContent: 'center', alignItems: 'center' }}>
                             <ActivityIndicator size="large" color={COLORS.primary} />
                         </View>
                     ) : (
-                        <>
-                            <TouchableOpacity style={styles.locationRow} onPress={handleRefreshLocation}>
-                                <Text style={{ fontSize: 18 }}>📍</Text>
-                                <Text style={styles.cityName}>{weather.city}</Text>
-                            </TouchableOpacity>
-
-                            <View style={styles.weatherMain}>
+                        <View>
+                            <View style={styles.weatherHeader}>
                                 <View>
-                                    <Text style={styles.mainTemp}>{weather.temp}C</Text>
-                                    <Text style={styles.skyText}>{weather.desc}</Text>
+                                    <Text style={styles.cityName}>{weather.city}</Text>
+                                    <Text style={styles.mainTemp}>{weather.temp}<Text style={{ fontSize: 28 }}>°</Text></Text>
+                                    <View style={styles.weatherStatusBox}>
+                                        <Text style={styles.skyText}>{weather.desc}</Text>
+                                    </View>
                                 </View>
-                                <Text style={{ fontSize: 52 }}>{weather.icon}</Text>
+                                <View style={styles.weatherIconLarge}>
+                                    <MaterialCommunityIcons name="cloud" size={54} color="#E0F2FE" />
+                                </View>
                             </View>
-                        </>
+
+                            <View style={styles.weatherStatsGrid}>
+                                <View style={styles.weatherStatItem}>
+                                    <Text style={styles.wsLabel}>HUMIDITY</Text>
+                                    <Text style={styles.wsVal}>{weather.humidity}</Text>
+                                </View>
+                                <View style={styles.weatherStatItem}>
+                                    <Text style={styles.wsLabel}>PRECIPITATION</Text>
+                                    <Text style={styles.wsVal}>{weather.preci}</Text>
+                                </View>
+                                <View style={styles.weatherStatItem}>
+                                    <Text style={styles.wsLabel}>PRESSURE</Text>
+                                    <Text style={styles.wsVal}>{weather.pressure}</Text>
+                                </View>
+                                <View style={styles.weatherStatItem}>
+                                    <Text style={styles.wsLabel}>WIND</Text>
+                                    <Text style={styles.wsVal}>{weather.wind}</Text>
+                                </View>
+                                <View style={styles.weatherStatItem}>
+                                    <Text style={styles.wsLabel}>SUNRISE</Text>
+                                    <Text style={styles.wsVal}>{weather.sunrise}</Text>
+                                </View>
+                                <View style={styles.weatherStatItem}>
+                                    <Text style={styles.wsLabel}>SUNSET</Text>
+                                    <Text style={styles.wsVal}>{weather.sunset}</Text>
+                                </View>
+                            </View>
+                        </View>
                     )}
-                    <View style={styles.statsGrid}>
-                        <View style={styles.statItem}><Text style={styles.statLabel}>{t('humidity')}</Text><Text style={styles.statVal}>{weather.humidity}</Text></View>
-                        <View style={styles.statItem}><Text style={styles.statLabel}>Wind</Text><Text style={styles.statVal}>{weather.wind}</Text></View>
-                    </View>
                 </Card>
 
-                {/* IoT Sensors */}
-                <SectionHeader title={t('scannow')} sub={iotData.time} />
+                {/* IoT Sensors Section */}
+                <View style={styles.sectionHeaderRow}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                         <MaterialCommunityIcons name="satellite-variant" size={22} color="white" />
+                         <Text style={styles.sectionTitleWhite}>Field Sensors</Text>
+                         <View style={styles.liveDot} />
+                    </View>
+                    <Text style={styles.timeTextWhite}>{iotData.time}</Text>
+                </View>
+
                 <View style={styles.iotGrid}>
+                    {/* Soil Moisture */}
                     <Card style={styles.iotCard}>
-                        <View style={[styles.iotIconBox, { backgroundColor: '#E0F2FE' }]}><Text style={{ fontSize: 24 }}>💧</Text></View>
-                        <Text style={styles.iotLabel}>{t('soil')}</Text>
+                        <View style={[styles.iotIconBox, { backgroundColor: '#E0F2FE' }]}>
+                             <Ionicons name="water" size={24} color="#0EA5E9" />
+                        </View>
+                        <Text style={styles.iotLabel}>Soil Moisture</Text>
                         <Text style={styles.iotVal}>{iotData.soil}%</Text>
+                        <Text style={styles.iotSub}>Optimal: 40-60%</Text>
                     </Card>
+
+                    {/* Illumination */}
                     <Card style={styles.iotCard}>
-                        <View style={[styles.iotIconBox, { backgroundColor: '#FEF2F2' }]}><Text style={{ fontSize: 24 }}>🌡️</Text></View>
-                        <Text style={styles.iotLabel}>{t('temp')}</Text>
+                        <View style={[styles.iotIconBox, { backgroundColor: '#FEF3C7' }]}>
+                             <Ionicons name="sunny" size={24} color="#F59E0B" />
+                        </View>
+                        <Text style={styles.iotLabel}>Illumination</Text>
+                        <Text style={styles.iotVal}>{iotData.light}%</Text>
+                        <Text style={styles.iotSub}>Live Exposure</Text>
+                    </Card>
+
+                    {/* Air Humidity */}
+                    <Card style={styles.iotCard}>
+                        <View style={[styles.iotIconBox, { backgroundColor: '#DCFCE7' }]}>
+                             <MaterialCommunityIcons name="thermometer" size={24} color="#10B981" />
+                        </View>
+                        <Text style={styles.iotLabel}>Air Humidity</Text>
+                        <Text style={styles.iotVal}>{iotData.humidity}%</Text>
+                        <Text style={styles.iotSub}>Ambient</Text>
+                    </Card>
+
+                    {/* Temperature */}
+                    <Card style={styles.iotCard}>
+                        <View style={[styles.iotIconBox, { backgroundColor: '#FEE2E2' }]}>
+                             <MaterialCommunityIcons name="thermometer-lines" size={24} color="#EF4444" />
+                        </View>
+                        <Text style={styles.iotLabel}>Temperature</Text>
                         <Text style={styles.iotVal}>{iotData.temperature}°C</Text>
+                        <Text style={styles.iotSub}>System Core</Text>
                     </Card>
                 </View>
 
-                {/* Rubber Market */}
+                {/* Market Section */}
                 <SectionHeader title={t('market')} />
                 <View style={styles.iotGrid}>
                     {rubberStocks.map(item => (
                         <Card key={item.grade} style={styles.iotCard}>
+                            <View style={styles.marketIconBox}>
+                                <Text style={{ fontSize: 20 }}>{item.icon}</Text>
+                            </View>
                             <Text style={styles.iotLabel}>{item.grade}</Text>
                             <Text style={styles.iotVal}>{item.price}</Text>
                         </Card>
                     ))}
                 </View>
 
-                <View style={{ height: 60 }} />
+                <View style={{ height: 100 }} />
             </ScrollView>
 
             {/* Language Modal */}
@@ -245,30 +353,39 @@ export default function DashboardScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-    screen: { flex: 1, backgroundColor: '#F5F7F6' },
-    headerGradient: { position: 'absolute', top: 0, left: 0, right: 0, borderBottomLeftRadius: 36, borderBottomRightRadius: 36 },
+    screen: { flex: 1, backgroundColor: '#064E3B' },
+    headerGradient: { position: 'absolute', top: 0, left: 0, right: 0, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
     scroll: { paddingHorizontal: 20 },
     topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, marginBottom: 20 },
-    greetText: { color: 'white', fontSize: 20, fontWeight: '700' },
-    dateSelector: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-    dateText: { color: 'rgba(255,255,255,0.7)', fontSize: 13 },
-    avatar: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: 'white' },
-    langBtnSmall: { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-    weatherCard: { marginTop: 10, padding: 20, borderRadius: 24, backgroundColor: 'white', ...SHADOW.card },
-    locationRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
-    cityName: { fontSize: 16, color: '#1a1a1a', fontWeight: '800' },
-    weatherMain: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    mainTemp: { fontSize: 44, fontWeight: '900', color: '#1a1a1a' },
-    skyText: { fontSize: 14, color: '#666', fontWeight: '700' },
-    statsGrid: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 },
-    statItem: { flex: 1 },
-    statLabel: { fontSize: 11, color: '#999', marginBottom: 4 },
-    statVal: { fontSize: 14, color: '#1a1a1a', fontWeight: '800' },
-    iotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 },
-    iotCard: { width: (width - 52) / 2, padding: 16, borderRadius: 20, alignItems: 'center' },
-    iotIconBox: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
-    iotLabel: { fontSize: 12, color: '#666', fontWeight: '700' },
-    iotVal: { fontSize: 18, fontWeight: '900', color: '#1a1a1a', marginTop: 2 },
+    helloText: { color: 'rgba(255,255,255,0.8)', fontSize: 16, fontWeight: '500' },
+    greetText: { color: 'white', fontSize: 32, fontWeight: '800' },
+    dateHeaderText: { color: 'rgba(255,255,255,0.6)', fontSize: 14, marginTop: 4 },
+    headerIcons: { flexDirection: 'row', gap: 12 },
+    iconCircle: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+    searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 40, paddingHorizontal: 20, paddingVertical: 14, marginBottom: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+    searchInput: { flex: 1, color: 'white', fontSize: 16, fontWeight: '600' },
+    weatherCard: { padding: 24, borderRadius: 48, backgroundColor: 'white', marginBottom: 24, ...SHADOW.card },
+    weatherHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+    cityName: { fontSize: 18, color: '#333', fontWeight: '800' },
+    mainTemp: { fontSize: 44, fontWeight: '900', color: '#1a1a1a', marginTop: 8 },
+    weatherStatusBox: { marginTop: 16 },
+    skyText: { fontSize: 16, color: '#666', fontWeight: '700' },
+    weatherIconLarge: { width: 80, height: 80, borderRadius: 24, backgroundColor: '#ECFDF5', alignItems: 'center', justifyContent: 'center' },
+    weatherStatsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 24, borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingTop: 20 },
+    weatherStatItem: { width: (width - 100) / 3, marginBottom: 16 },
+    wsLabel: { fontSize: 10, color: '#999', fontWeight: '800', marginBottom: 4 },
+    wsVal: { fontSize: 14, color: '#1a1a1a', fontWeight: '800' },
+    sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+    sectionTitleWhite: { fontSize: 20, fontWeight: '800', color: 'white' },
+    timeTextWhite: { fontSize: 12, color: 'rgba(255,255,255,0.5)' },
+    liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#10B981', marginLeft: 4 },
+    iotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
+    iotCard: { width: (width - 52) / 2, padding: 18, borderRadius: 24, alignItems: 'center', backgroundColor: 'white' },
+    iotIconBox: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 14 },
+    iotLabel: { fontSize: 13, color: '#666', fontWeight: '700' },
+    iotVal: { fontSize: 22, fontWeight: '900', color: '#1a1a1a', marginTop: 4 },
+    iotSub: { fontSize: 11, color: '#999', marginTop: 4, fontWeight: '600' },
+    marketIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#f1f5f9' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
     modalContent: { width: '80%', backgroundColor: 'white', borderRadius: 24, padding: 24, ...SHADOW.card },
     modalTitle: { fontSize: 20, fontWeight: '800', color: '#1a1a1a', marginBottom: 20, textAlign: 'center' },
