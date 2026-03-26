@@ -57,36 +57,42 @@ export default function CropHealthScreen() {
                 symptoms: symptoms
             };
 
-            let res = await fetch(PRIMARY_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).catch(() => null);
+            const fetchPrediction = async (url) => {
+                console.log(`🤖 Attempting AI prediction at: ${url}`);
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const contentType = response.headers.get("content-type");
+                if (response.ok && contentType && contentType.includes("application/json")) {
+                    return await response.json();
+                } else {
+                    const text = await response.text();
+                    console.warn(`⚠️ API at ${url} returned non-JSON: ${text.substring(0, 100)}`);
+                    return null;
+                }
+            };
 
-            // Robust JSON check
-            if (res && res.ok && res.headers.get("content-type")?.includes("application/json")) {
-                const data = await res.json();
-                setResult(data);
-                setAnalyzing(false);
-                return;
+            let data = await fetchPrediction(PRIMARY_URL).catch(() => null);
+            
+            if (!data) {
+                console.warn("Retrying with Local Fallback AI...");
+                data = await fetchPrediction(FALLBACK_URL).catch((err) => {
+                    console.error("Local AI also failed:", err);
+                    return null;
+                });
             }
 
-            console.warn("Primary AI failed or returned non-JSON. Trying local fallback...");
-            res = await fetch(FALLBACK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).catch(() => null);
-
-            if (res && res.ok && res.headers.get("content-type")?.includes("application/json")) {
-                const data = await res.json();
+            if (data) {
                 setResult(data);
             } else {
-                throw new Error("Prediction Service Unavailable");
+                throw new Error("All AI prediction endpoints failed.");
             }
         } catch (err) {
-            console.error(err);
-            Alert.alert("Analysis Error", "Failed to connect to AI Predictor.");
+            console.error("ANALYSIS_CRASH:", err);
+            Alert.alert("Analysis Error", "Failed to connect to AI Predictor. Please check your network or try again later.");
         } finally {
             setAnalyzing(false);
         }

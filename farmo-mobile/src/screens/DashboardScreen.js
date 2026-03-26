@@ -198,8 +198,8 @@ export default function DashboardScreen({ navigation }) {
                         <View>
                             <View style={styles.weatherHeader}>
                                 <View>
-                                    <Text style={styles.cityName}>Fetching Location...</Text>
-                                    <Text style={styles.mainTemp}>--<Text style={{ fontSize: 28 }}>°</Text></Text>
+                                    <Text style={styles.cityName}>{weather.city}</Text>
+                                    <Text style={styles.mainTemp}>{weather.temp}<Text style={{ fontSize: 28 }}>°</Text></Text>
                                     <View style={styles.weatherStatusBox}>
                                         <Text style={styles.skyText}>{weather.desc}</Text>
                                     </View>

@@ -78,19 +78,18 @@ def get_resources():
         except Exception as e:
             print("[ERR] Groq init error:", e)
 
-    # Load PyTorch Model (Multimodal)
+    # Load ONNX Model
     if _resources["onnx_session"] is None:
         try:
-            import torch
+            import onnxruntime as ort
             model_path = "../farmo-mobile/assets/rubber_disease_model.onnx"
             if os.path.exists(model_path):
-                print(f"... Loading Multimodal PyTorch (JIT) from {model_path}...")
-                _resources["onnx_session"] = torch.jit.load(model_path)
-                _resources["onnx_session"].eval()
+                print(f"... Loading ONNX Session from {model_path}...")
+                _resources["onnx_session"] = ort.InferenceSession(model_path)
             else:
-                print("[WARN] Model not found in mobile assets.")
+                print("[WARN] ONNX model not found in mobile assets.")
         except Exception as e:
-            print("[ERR] PyTorch Load Error:", e)
+            print("[ERR] ONNX Load Error:", e)
 
     return _resources
 
@@ -218,7 +217,15 @@ async def predict(req: PredictRequest):
 
     except Exception as e:
         print("[ERR] Prediction Error:", e)
-        return {"error": str(e)}
+        return {
+            "disease": "System Error",
+            "confidence": 0,
+            "pathogen": "Unknown",
+            "treatment": "Connection error or invalid data.",
+            "malayalam": "സിസ്റ്റം പിശക്. വീണ്ടും ശ്രമിക്കുക.",
+            "severity": "Unknown",
+            "error": str(e)
+        }
 
 
 @app.post("/chat")
