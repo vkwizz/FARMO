@@ -22,10 +22,10 @@ export default function Sidebar() {
     ];
 
     const statusItems = [
-        { labelKey: 'cropAI', color: '#34d399' },
-        { labelKey: 'marketFeed', color: '#34d399' },
+        { labelKey: 'cropAI', color: '#006d44' },
+        { labelKey: 'marketFeed', color: '#006d44' },
         { labelKey: 'weatherAPI', color: '#fbbf24' },
-        { labelKey: 'ragEngine', color: '#34d399' },
+        { labelKey: 'ragEngine', color: '#006d44' },
     ];
 
     // Close dropdown when clicking outside
@@ -44,8 +44,9 @@ export default function Sidebar() {
     return (
         <aside style={{
             width: collapsed ? '72px' : '240px',
-            background: 'linear-gradient(180deg, #0d2818 0%, #061208 100%)',
-            borderRight: '1px solid rgba(52,211,153,0.12)',
+            background: 'var(--bg-white)',
+            borderRight: '1px solid rgba(0,0,0,0.06)',
+            boxShadow: '4px 0 20px rgba(0,0,0,0.02)',
             height: '100vh',
             position: 'fixed',
             left: 0,
@@ -55,14 +56,14 @@ export default function Sidebar() {
             flexDirection: 'column',
             transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1)',
             overflow: 'visible',
-        }}>
+        }} className="sidebar-container">
             {/* Logo + Globe */}
             <div style={{
                 padding: '16px 16px 14px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
-                borderBottom: '1px solid rgba(52,211,153,0.1)',
+                borderBottom: '1px solid rgba(0,0,0,0.05)',
                 minHeight: '72px',
                 overflow: 'visible',
                 position: 'relative',
@@ -71,19 +72,19 @@ export default function Sidebar() {
                     width: '36px',
                     height: '36px',
                     borderRadius: '10px',
-                    background: 'linear-gradient(135deg, #059669, #34d399)',
+                    background: 'linear-gradient(135deg, #006d44, #22c55e)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '18px',
                     flexShrink: 0,
-                    boxShadow: '0 4px 15px rgba(52,211,153,0.3)',
+                    boxShadow: '0 4px 12px rgba(0,109,68,0.2)',
                 }}>🌿</div>
 
                 {!collapsed && (
                     <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '1.05rem', color: '#f1f5f9' }}>FARMO</div>
-                        <div style={{ fontSize: '0.6rem', color: '#34d399', letterSpacing: '0.08em', textTransform: 'uppercase' }}>AI Farm Platform</div>
+                        <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.2rem', color: 'var(--primary-green)', letterSpacing: '-0.02em' }}>FARMO</div>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--gray-500)', letterSpacing: '0.05em', textTransform: 'uppercase', fontWeight: 600 }}>Agriculture AI</div>
                     </div>
                 )}
 
@@ -93,39 +94,36 @@ export default function Sidebar() {
                         onClick={() => setLangOpen(!langOpen)}
                         title={t.selectLanguage}
                         style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
-                            background: langOpen ? 'rgba(52,211,153,0.2)' : 'rgba(52,211,153,0.08)',
-                            border: '1px solid rgba(52,211,153,0.25)',
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '12px',
+                            background: langOpen ? 'rgba(0,109,68,0.1)' : 'var(--gray-50)',
+                            border: '1px solid rgba(0,109,68,0.15)',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '16px',
+                            fontSize: '18px',
                             transition: 'all 0.2s ease',
                             position: 'relative',
                         }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(52,211,153,0.18)'}
-                        onMouseLeave={e => e.currentTarget.style.background = langOpen ? 'rgba(52,211,153,0.2)' : 'rgba(52,211,153,0.08)'}
                     >
                         🌐
-                        {/* Active lang dot */}
                         <span style={{
                             position: 'absolute',
-                            bottom: '-2px',
-                            right: '-2px',
-                            width: '10px',
-                            height: '10px',
+                            bottom: '-4px',
+                            right: '-4px',
+                            width: '14px',
+                            height: '14px',
                             borderRadius: '50%',
-                            background: '#34d399',
-                            border: '1.5px solid #0d2818',
+                            background: 'var(--primary-green)',
+                            border: '2px solid white',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '5px',
-                            color: '#061208',
-                            fontWeight: 700,
+                            fontSize: '6px',
+                            color: 'white',
+                            fontWeight: 800,
                         }}>
                             {lang.toUpperCase().slice(0, 2)}
                         </span>
@@ -137,28 +135,25 @@ export default function Sidebar() {
                             position: 'fixed',
                             top: '68px',
                             left: collapsed ? '80px' : '248px',
-                            background: 'linear-gradient(160deg, #0f3621 0%, #0d2818 100%)',
-                            border: '1px solid rgba(52,211,153,0.25)',
-                            borderRadius: '14px',
+                            background: 'white',
+                            border: '1px solid rgba(0,0,0,0.08)',
+                            borderRadius: '16px',
                             padding: '8px',
-                            minWidth: '200px',
-                            boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 30px rgba(52,211,153,0.1)',
+                            minWidth: '220px',
+                            boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
                             zIndex: 9999,
                             backdropFilter: 'blur(20px)',
                             animation: 'langFadeIn 0.18s ease',
                         }}>
                             <div style={{
-                                fontSize: '0.65rem',
-                                color: '#34d399',
-                                fontWeight: 700,
+                                fontSize: '0.7rem',
+                                color: 'var(--primary-green)',
+                                fontWeight: 800,
                                 textTransform: 'uppercase',
                                 letterSpacing: '0.1em',
-                                padding: '4px 8px 8px',
-                                borderBottom: '1px solid rgba(52,211,153,0.1)',
+                                padding: '8px 12px',
+                                borderBottom: '1px solid rgba(0,0,0,0.05)',
                                 marginBottom: '6px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
                             }}>
                                 🌐 {t.selectLanguage}
                             </div>
@@ -169,29 +164,25 @@ export default function Sidebar() {
                                     style={{
                                         width: '100%',
                                         textAlign: 'left',
-                                        padding: '9px 12px',
-                                        background: lang === l.code ? 'rgba(52,211,153,0.15)' : 'transparent',
-                                        border: lang === l.code ? '1px solid rgba(52,211,153,0.3)' : '1px solid transparent',
-                                        borderRadius: '9px',
+                                        padding: '10px 12px',
+                                        background: lang === l.code ? 'rgba(0,109,68,0.05)' : 'transparent',
+                                        border: 'none',
+                                        borderRadius: '12px',
                                         cursor: 'pointer',
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '10px',
-                                        marginBottom: '3px',
+                                        gap: '12px',
+                                        marginBottom: '2px',
                                         transition: 'all 0.15s ease',
-                                        color: lang === l.code ? '#34d399' : '#94a3b8',
+                                        color: lang === l.code ? 'var(--primary-green)' : 'var(--gray-600)',
                                     }}
-                                    onMouseEnter={e => { if (lang !== l.code) { e.currentTarget.style.background = 'rgba(52,211,153,0.08)'; e.currentTarget.style.color = '#e2e8f0'; } }}
-                                    onMouseLeave={e => { if (lang !== l.code) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94a3b8'; } }}
                                 >
-                                    <span style={{ fontSize: '16px' }}>{l.flag}</span>
-                                    <div>
-                                        <div style={{ fontSize: '0.82rem', fontWeight: lang === l.code ? 700 : 500, lineHeight: 1.2 }}>{l.nativeLabel}</div>
-                                        <div style={{ fontSize: '0.68rem', color: lang === l.code ? 'rgba(52,211,153,0.7)' : '#475569', lineHeight: 1 }}>{l.label}</div>
+                                    <span style={{ fontSize: '18px' }}>{l.flag}</span>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: '0.85rem', fontWeight: lang === l.code ? 700 : 500 }}>{l.nativeLabel}</div>
+                                        <div style={{ fontSize: '0.7rem', color: 'var(--gray-400)' }}>{l.label}</div>
                                     </div>
-                                    {lang === l.code && (
-                                        <span style={{ marginLeft: 'auto', color: '#34d399', fontSize: '14px' }}>✓</span>
-                                    )}
+                                    {lang === l.code && <span style={{ color: 'var(--primary-green)' }}>✓</span>}
                                 </button>
                             ))}
                         </div>
@@ -200,29 +191,25 @@ export default function Sidebar() {
             </div>
 
             {/* Nav */}
-            <nav style={{ flex: 1, padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto', overflowX: 'hidden' }}>
+            <nav style={{ flex: 1, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto', overflowX: 'hidden' }}>
                 {navItems.map(item => {
                     const active = pathname === item.href;
                     return (
                         <Link key={item.href} href={item.href} style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '12px',
-                            padding: '10px 12px',
-                            borderRadius: '10px',
+                            gap: '14px',
+                            padding: '12px 14px',
+                            borderRadius: '16px',
                             textDecoration: 'none',
-                            color: active ? '#34d399' : '#94a3b8',
-                            background: active ? 'rgba(52,211,153,0.12)' : 'transparent',
-                            border: active ? '1px solid rgba(52,211,153,0.25)' : '1px solid transparent',
-                            transition: 'all 0.2s ease',
+                            color: active ? 'var(--primary-green)' : 'var(--gray-600)',
+                            background: active ? 'rgba(0,109,68,0.05)' : 'transparent',
+                            border: active ? '1px solid rgba(0,109,68,0.1)' : '1px solid transparent',
+                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                             whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                        }}
-                            onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'rgba(52,211,153,0.06)'; e.currentTarget.style.color = '#e2e8f0'; } }}
-                            onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94a3b8'; } }}
-                        >
-                            <span style={{ fontSize: '18px', flexShrink: 0 }}>{item.icon}</span>
-                            {!collapsed && <span style={{ fontWeight: active ? 600 : 400, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t[item.labelKey]}</span>}
+                        }} className={active ? "nav-link active" : "nav-link"}>
+                            <span style={{ fontSize: '20px', flexShrink: 0 }}>{item.icon}</span>
+                            {!collapsed && <span style={{ fontWeight: active ? 700 : 500, fontSize: '0.95rem' }}>{t[item.labelKey]}</span>}
                         </Link>
                     );
                 })}
@@ -230,12 +217,12 @@ export default function Sidebar() {
 
             {/* System Status */}
             {!collapsed && (
-                <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(52,211,153,0.1)' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{t.systemStatus}</div>
+                <div style={{ padding: '16px', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--gray-400)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>{t.systemStatus}</div>
                     {statusItems.map(s => (
-                        <div key={s.labelKey} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
-                            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: s.color, boxShadow: `0 0 6px ${s.color}`, flexShrink: 0 }} />
-                            <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{t[s.labelKey]}</span>
+                        <div key={s.labelKey} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: s.color, flexShrink: 0 }} />
+                            <span style={{ fontSize: '0.8rem', color: 'var(--gray-600)' }}>{t[s.labelKey]}</span>
                         </div>
                     ))}
                 </div>
@@ -245,15 +232,18 @@ export default function Sidebar() {
             <button
                 onClick={() => setCollapsed(!collapsed)}
                 style={{
-                    margin: '8px',
-                    padding: '8px',
-                    background: 'rgba(52,211,153,0.06)',
-                    border: '1px solid rgba(52,211,153,0.12)',
-                    borderRadius: '8px',
-                    color: '#64748b',
+                    margin: '12px',
+                    padding: '10px',
+                    background: 'var(--gray-50)',
+                    border: '1px solid rgba(0,0,0,0.05)',
+                    borderRadius: '12px',
+                    color: 'var(--gray-500)',
                     cursor: 'pointer',
-                    fontSize: '16px',
+                    fontSize: '14px',
                     transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                 }}
             >
                 {collapsed ? '→' : '←'}
@@ -261,8 +251,57 @@ export default function Sidebar() {
 
             <style>{`
                 @keyframes langFadeIn {
-                    from { opacity: 0; transform: translateX(-8px); }
-                    to { opacity: 1; transform: translateX(0); }
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+
+                @media (max-width: 768px) {
+                    .sidebar-container {
+                        width: 94% !important;
+                        height: 72px !important;
+                        bottom: 20px !important;
+                        top: auto !important;
+                        left: 50% !important;
+                        transform: translateX(-50%) !important;
+                        flex-direction: row !important;
+                        border-radius: 20px !important;
+                        border: 1px solid rgba(255,255,255,0.9) !important;
+                        background: rgba(255, 255, 255, 0.85) !important;
+                        backdrop-filter: blur(20px) !important;
+                        box-shadow: 0 10px 40px rgba(0,0,0,0.12) !important;
+                        padding: 0 10px !important;
+                    }
+
+                    .sidebar-container nav {
+                        flex-direction: row !important;
+                        justify-content: space-around !important;
+                        padding: 0 !important;
+                        gap: 0 !important;
+                        width: 100% !important;
+                    }
+
+                    .sidebar-container div:first-child,
+                    .sidebar-container div:nth-child(2),
+                    .sidebar-container div:nth-child(3),
+                    .sidebar-container div:last-of-type,
+                    .sidebar-container > button {
+                        display: none !important;
+                    }
+                    
+                    .nav-link {
+                         padding: 8px !important;
+                         flex-direction: column !important;
+                         gap: 4px !important;
+                         font-size: 0.65rem !important;
+                         align-items: center !important;
+                         flex: 1 !important;
+                         background: transparent !important;
+                         border: none !important;
+                    }
+                    
+                    .nav-link.active {
+                        color: var(--primary-green) !important;
+                    }
                 }
             `}</style>
         </aside>

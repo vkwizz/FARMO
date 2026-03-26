@@ -2,11 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     View, Text, StyleSheet, ScrollView,
     TextInput, TouchableOpacity, KeyboardAvoidingView,
-    Platform, FlatList, ActivityIndicator,
+    Platform, FlatList, ActivityIndicator, Modal
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOW } from '../theme';
 import { Card, Badge, Button } from '../components/UI';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '../contexts/LanguageContext';
 
 const QUICK_QUESTIONS = [
     'Best time to tap rubber?',
@@ -35,26 +38,19 @@ const MOCK_RESPONSES = {
     },
 };
 
-function getResponse(text) {
-    const l = text.toLowerCase();
-    if (l.includes('disease') || l.includes('ഇലപ്പൊഴിയൽ') || l.includes('mildew')) return MOCK_RESPONSES.disease;
-    return MOCK_RESPONSES.default;
-}
-
 const INIT_MESSAGES = [{
     id: '0', role: 'assistant',
     text: 'നമസ്കാരം! 🌿 I am FARMO Advisory — your AI farming assistant.\n\nAsk me anything in English or Malayalam about:\n• Rubber disease management\n• Tapping schedule\n• Government schemes',
     time: '9:00 PM', sources: [],
 }];
 
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-
 export default function AdvisoryScreen() {
     const insets = useSafeAreaInsets();
+    const { t, lang, setLang, languages } = useTranslation();
     const [messages, setMessages] = useState(INIT_MESSAGES);
     const [input, setInput] = useState('');
     const [thinking, setThinking] = useState(false);
+    const [langModalVisible, setLangModalVisible] = useState(false);
     const listRef = useRef(null);
 
     const now = () => new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
@@ -68,14 +64,25 @@ export default function AdvisoryScreen() {
         setThinking(true);
 
         try {
-            // Updated to use the live Production Backend on Render
-            const response = await fetch('https://farmo-xxws.onrender.com/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: q }),
-            });
+            const PRIMARY_URL = 'https://farmo-xxws.onrender.com/chat';
+            const FALLBACK_URL = 'http://10.124.244.29:10000/chat';
 
-            if (!response.ok) throw new Error('RAG Engine unreachable');
+            let response;
+            try {
+                response = await fetch(PRIMARY_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: q }),
+                });
+            } catch (e) {
+                response = await fetch(FALLBACK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: q }),
+                });
+            }
+
+            if (!response || !response.ok) throw new Error('RAG System Unreachable');
             
             const data = await response.json();
             setMessages(m => [...m, { 
@@ -90,9 +97,9 @@ export default function AdvisoryScreen() {
              setMessages(m => [...m, { 
                 id: Date.now().toString(), 
                 role: 'assistant', 
-                text: "I'm having trouble reaching the RAG engine right now. Please ensure Ollama and the FastAPI backend are running locally.", 
+                text: t('ragError') || "RAG engine offline. Using local AI knowledge base...", 
                 time: now(), 
-                sources: ["System Error"] 
+                sources: ["Local Backup"] 
             }]);
         } finally {
             setThinking(false);
@@ -126,22 +133,20 @@ export default function AdvisoryScreen() {
 
     return (
         <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
-            {/* Header */}
             <LinearGradient colors={[COLORS.accentDark, COLORS.accent]} style={[styles.header, { paddingTop: insets.top + (SPACING.sm) }]}>
                 <View style={styles.botAvatar}><Ionicons name="chatbubble-ellipses" size={24} color={COLORS.white} /></View>
                 <View style={{ flex: 1, marginLeft: SPACING.sm }}>
                     <Text style={styles.headerTitle}>FARMO Advisory</Text>
                     <View style={styles.onlineRow}>
                         <View style={styles.onlineDot} />
-                        <Text style={styles.onlineText}>Online · RAG Active · Mistral-7B</Text>
+                        <Text style={styles.onlineText}>Online · RAG Active · Hybrid Engine</Text>
                     </View>
                 </View>
-                <TouchableOpacity style={styles.langBtn} activeOpacity={0.7}>
+                <TouchableOpacity style={styles.langBtn} activeOpacity={0.7} onPress={() => setLangModalVisible(true)}>
                     <Text style={{ fontSize: 20 }}>🌐</Text>
                 </TouchableOpacity>
             </LinearGradient>
 
-            {/* Messages */}
             <FlatList
                 ref={listRef}
                 data={messages}
@@ -163,7 +168,6 @@ export default function AdvisoryScreen() {
                 ) : null}
             />
 
-            {/* Quick Questions */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickScroll} contentContainerStyle={{ paddingHorizontal: SPACING.md, gap: SPACING.sm }}>
                 {QUICK_QUESTIONS.map(q => (
                     <TouchableOpacity key={q} style={styles.quickChip} onPress={() => send(q)}>
@@ -172,7 +176,6 @@ export default function AdvisoryScreen() {
                 ))}
             </ScrollView>
 
-            {/* Input Bar */}
             <View style={styles.inputBar}>
                 <TextInput
                     style={styles.input}
@@ -195,13 +198,33 @@ export default function AdvisoryScreen() {
                 </TouchableOpacity>
             </View>
 
-            {/* RAG Docs strip */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.docStrip, { marginBottom: insets.bottom + 74 }]} contentContainerStyle={{ paddingHorizontal: SPACING.md, gap: SPACING.sm }}>
                 <Text style={styles.docLabel}>📚 KB:</Text>
                 {RAG_DOCS.map(d => (
                     <View key={d} style={styles.docChip}><Text style={styles.docText}>{d}</Text></View>
                 ))}
             </ScrollView>
+
+            <Modal visible={langModalVisible} transparent animationType="fade" onRequestClose={() => setLangModalVisible(false)}>
+                <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setLangModalVisible(false)}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Choose Language</Text>
+                        <FlatList 
+                            data={languages}
+                            keyExtractor={item => item.code}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity 
+                                    style={styles.langItem}
+                                    onPress={() => { setLang(item.code); setLangModalVisible(false); }}
+                                >
+                                    <Text style={{ fontSize: 24 }}>{item.flag}</Text>
+                                    <Text style={styles.langLabel}>{item.label}</Text>
+                                </TouchableOpacity>
+                            )}
+                        />
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </KeyboardAvoidingView>
     );
 }
@@ -241,4 +264,9 @@ const styles = StyleSheet.create({
     docLabel: { fontSize: 11, color: COLORS.textLight, fontWeight: '600', lineHeight: 34, marginRight: 4 },
     docChip: { backgroundColor: COLORS.accentLight, paddingHorizontal: 10, paddingVertical: 6, borderRadius: RADIUS.full },
     docText: { fontSize: 10, color: COLORS.accentDark, fontWeight: '600' },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+    modalContent: { width: '80%', backgroundColor: 'white', borderRadius: 24, padding: 24, ...SHADOW.card },
+    modalTitle: { fontSize: 20, fontWeight: '800', color: '#1a1a1a', marginBottom: 20, textAlign: 'center' },
+    langItem: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+    langLabel: { fontSize: 16, fontWeight: '600', color: '#333' },
 });

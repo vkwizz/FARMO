@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { LanguageProvider } from './src/contexts/LanguageContext';
 
 import DashboardScreen from './src/screens/DashboardScreen';
 import CropHealthScreen from './src/screens/CropHealthScreen';
@@ -22,9 +23,9 @@ function TabIcon({ name, focused, color }) {
     <View style={{
       alignItems: 'center', justifyContent: 'center',
       width: 48, height: 48, borderRadius: 24,
-      backgroundColor: focused ? 'rgba(255,255,255,0.08)' : 'transparent',
+      backgroundColor: focused ? '#E8F5E9' : 'transparent',
     }}>
-      <Ionicons name={name} size={focused ? 26 : 22} color={color} />
+      <Ionicons name={name} size={focused ? 24 : 22} color={color} />
     </View>
   );
 }
@@ -34,18 +35,20 @@ function MainTabs({ navigation }) {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: COLORS.accent,
-        tabBarInactiveTintColor: 'rgba(255,255,255,0.45)',
+        tabBarActiveTintColor: COLORS.primary,
+        tabBarInactiveTintColor: COLORS.textLight,
         tabBarShowLabel: false,
         tabBarStyle: {
-          backgroundColor: '#0D4D31', // matched to dashboard gradient start
-          borderTopWidth: 0,
-          height: 74,
-          paddingTop: 8,
-          position: 'absolute',
-          bottom: 0, left: 0, right: 0,
-          elevation: 0,
-          borderTopColor: 'transparent',
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 1,
+          borderTopColor: '#F0F0F0',
+          height: 85,
+          paddingTop: 10,
+          elevation: 10,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.05,
+          shadowRadius: 10,
         },
       }}
     >
@@ -54,12 +57,13 @@ function MainTabs({ navigation }) {
       <Tab.Screen name="CropHealth" component={CropHealthScreen}
         options={{ title: 'Crop', tabBarIcon: p => <TabIcon name={p.focused ? "leaf" : "leaf-outline"} {...p} /> }} />
       <Tab.Screen name="Weather" component={WeatherScreen}
-        options={{ title: 'Weather', tabBarIcon: p => <TabIcon name={p.focused ? "partly-sunny" : "partly-sunny-outline"} {...p} /> }} />
+        options={{ title: 'Weather', tabBarIcon: p => <TabIcon name={p.focused ? "stats-chart" : "stats-chart-outline"} {...p} /> }} />
       <Tab.Screen name="Advisory" component={AdvisoryScreen}
-        options={{ title: 'Advisory', tabBarIcon: p => <TabIcon name={p.focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"} {...p} />, tabBarBadge: '1', tabBarBadgeStyle: { backgroundColor: COLORS.danger, top: 4 } }} />
+        options={{ title: 'Advisory', tabBarIcon: p => <TabIcon name={p.focused ? "person" : "person-outline"} {...p} /> }} />
     </Tab.Navigator>
   );
 }
+
 
 // Wrapper to pass navigation prop down to Dashboard agent cards
 function DashboardWrapper(rootNav) {
@@ -71,12 +75,15 @@ function DashboardWrapper(rootNav) {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
-        <StatusBar style="light" translucent backgroundColor="transparent" />
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Main" component={MainTabs} />
-        </Stack.Navigator>
-      </NavigationContainer>
+      <LanguageProvider>
+        <NavigationContainer>
+          <StatusBar style="light" translucent backgroundColor="transparent" />
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Main" component={MainTabs} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }
+

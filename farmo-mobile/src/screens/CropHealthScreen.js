@@ -1,153 +1,95 @@
 import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
-    Image, ActivityIndicator, Alert, Platform,
+    Image, ActivityIndicator, Alert, Platform, TextInput,
+    Modal, FlatList
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOW } from '../theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, Badge, SectionHeader, Button } from '../components/UI';
-// import * as ort from 'onnxruntime-web'; // Removed to avoid Metro bundling error
-const getOrt = () => (typeof window !== 'undefined' ? (window.ort || global.ort) : null);
+import { useTranslation } from '../contexts/LanguageContext';
 import advisoryData from '../advisory.json';
-
-const CLASSES = [
-    'Birds-eye', 'Colletorichum-leaf-disease', 'Corynespora', 
-    'Dry_Leaf', 'Healthy', 'Pesta', 'Powdery-mildew'
-];
 
 export default function CropHealthScreen() {
     const insets = useSafeAreaInsets();
+    const { t, setLang, languages } = useTranslation();
+    
     const [image, setImage] = useState(null);
+    const [symptoms, setSymptoms] = useState("");
     const [analyzing, setAnalyzing] = useState(false);
     const [result, setResult] = useState(null);
-    const [session, setSession] = useState(null);
-
-    // Initialise Model Session (Web Only for onnxruntime-web)
-    useEffect(() => {
-        if (Platform.OS === 'web') {
-            const loadModel = async () => {
-                try {
-                    // Try to load from assets on web preview
-                    const ort = getOrt();
-                    if (!ort) throw new Error("ONNX Runtime not loaded via CDN yet.");
-                    const sess = await ort.InferenceSession.create('/assets/rubber_disease_model.onnx', {
-                        executionProviders: ['webgl'],
-                        graphOptimizationLevel: 'all'
-                    });
-                    setSession(sess);
-                } catch (err) {
-                    console.error("Model Load Error:", err);
-                    // Fallback to local path if public root fails
-                    try {
-                        const sess = await getOrt().InferenceSession.create('./assets/rubber_disease_model.onnx');
-                        setSession(sess);
-                    } catch (e) {
-                         console.warn("AI model still not found. Local offline scanning unavailable.");
-                    }
-                }
-            };
-            loadModel();
-        }
-    }, []);
-
-    const softmax = (logits) => {
-        const maxLogit = Math.max(...logits);
-        const scores = Array.from(logits).map(v => Math.exp(v - maxLogit));
-        const den = scores.reduce((a, b) => a + b);
-        return scores.map(v => v / den);
-    };
-
-    const preprocess = async (uri) => {
-        if (Platform.OS !== 'web') return null;
-        return new Promise((resolve) => {
-            const img = new window.Image();
-            img.src = uri;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const size = 224;
-                canvas.width = size; canvas.height = size;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, size, size);
-                const { data } = ctx.getImageData(0, 0, size, size);
-                
-                // Normalization: (x/255 - mean) / std
-                const mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225];
-                const float32Data = new Float32Array(3 * size * size);
-                for (let i = 0; i < size * size; i++) {
-                    float32Data[i] = (data[i * 4] / 255.0 - mean[0]) / std[0]; // R
-                    float32Data[i + size * size] = (data[i * 4 + 1] / 255.0 - mean[1]) / std[1]; // G
-                    float32Data[i + 2 * size * size] = (data[i * 4 + 2] / 255.0 - mean[2]) / std[2]; // B
-                }
-                resolve(new (getOrt().Tensor)('float32', float32Data, [1, 3, size, size]));
-            };
-        });
-    };
+    const [langModalVisible, setLangModalVisible] = useState(false);
 
     const pickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') { Alert.alert('Permission needed', 'Allow gallery access to scan leaves.'); return; }
-        const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
-        if (!res.canceled) { analyzeLeaf(res.assets[0].uri); }
+        const res = await ImagePicker.launchImageLibraryAsync({ 
+            mediaTypes: ImagePicker.MediaTypeOptions.Images, 
+            quality: 0.5,
+            base64: true 
+        });
+        if (!res.canceled) { analyzeLeaf(res.assets[0]); }
     };
 
     const takePhoto = async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') { Alert.alert('Permission needed', 'Allow camera access to scan leaves.'); return; }
-        const res = await ImagePicker.launchCameraAsync({ quality: 0.8 });
-        if (!res.canceled) { analyzeLeaf(res.assets[0].uri); }
+        const res = await ImagePicker.launchCameraAsync({ 
+            quality: 0.5,
+            base64: true 
+        });
+        if (!res.canceled) { analyzeLeaf(res.assets[0]); }
     };
 
-    const analyzeLeaf = async (uri) => {
-        setImage(uri);
+    const analyzeLeaf = async (asset) => {
+        setImage(asset.uri);
         setResult(null);
         setAnalyzing(true);
 
-        if (Platform.OS === 'web' && session) {
-            try {
-                const inputTensor = await preprocess(uri);
-                const feeds = {};
-                feeds[session.inputNames[0]] = inputTensor;
-                const outputs = await session.run(feeds);
-                const logits = outputs[session.outputNames[0]].data;
-                const probabilities = softmax(logits);
-                const maxIdx = probabilities.indexOf(Math.max(...probabilities));
-                const disease = CLASSES[maxIdx];
-                const confidence = (probabilities[maxIdx] * 100).toFixed(1);
-                
-                const advisory = advisoryData[disease] || advisoryData["Healthy"];
-                
-                setResult({
-                    disease: disease,
-                    confidence: confidence,
-                    severity: disease === 'Healthy' ? 'Low' : 'Check',
-                    pathogen: advisory.overview.split('.')[0],
-                    treatment: advisory.treatment.join('. '),
-                    prevention: advisory.prevention.join('. '),
-                    malayalam: advisory.malayalam,
-                    results: advisory
-                });
-            } catch (err) {
-                console.error("Inference failed:", err);
-                Alert.alert("AI Error", "Failed to run model locally.");
+        try {
+            const PRIMARY_URL = 'https://rubber-chatbot-api.onrender.com/predict';
+            const FALLBACK_URL = 'http://10.124.244.29:10000/predict';
+
+            const payload = {
+                image_b64: asset.base64,
+                symptoms: symptoms
+            };
+
+            let res = await fetch(PRIMARY_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(() => null);
+
+            // Robust JSON check
+            if (res && res.ok && res.headers.get("content-type")?.includes("application/json")) {
+                const data = await res.json();
+                setResult(data);
+                setAnalyzing(false);
+                return;
             }
-        } else {
-            // Simulated delay for non-web or when session isn't ready
-            setTimeout(() => {
-                setResult({
-                    disease: 'Powdery Mildew',
-                    confidence: 94.2,
-                    severity: 'High',
-                    pathogen: 'Oidium heveae (Fallback Scan)',
-                    treatment: 'Apply 0.3% wettable sulphur fungicide. Repeat every 10–14 days. Remove heavily infected leaves.',
-                    malayalam: 'ഈ ഇലകളിൽ പൊടിപ്പൻ ചർമ്മ രോഗം കണ്ടെത്തി. ഗന്ദകം (0.3%) ഉടൻ spray ചെയ്യുക.',
-                    spread: 'Medium–High',
-                    stage: 'Early Stage',
-                });
-            }, 2500);
+
+            console.warn("Primary AI failed or returned non-JSON. Trying local fallback...");
+            res = await fetch(FALLBACK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(() => null);
+
+            if (res && res.ok && res.headers.get("content-type")?.includes("application/json")) {
+                const data = await res.json();
+                setResult(data);
+            } else {
+                throw new Error("Prediction Service Unavailable");
+            }
+        } catch (err) {
+            console.error(err);
+            Alert.alert("Analysis Error", "Failed to connect to AI Predictor.");
+        } finally {
+            setAnalyzing(false);
         }
-        setAnalyzing(false);
     };
 
     const activeRegistry = [
@@ -157,158 +99,177 @@ export default function CropHealthScreen() {
     ];
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={[styles.scroll, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false}>
-            {/* Header Banner */}
-            <LinearGradient colors={[COLORS.primary, '#388E3C']} style={[styles.banner, { paddingTop: insets.top + SPACING.lg }]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.md, flex: 1 }}>
-                    <Text style={styles.bannerIcon}>🔬</Text>
-                    <View>
-                        <Text style={styles.bannerTitle}>Crop Health Agent</Text>
-                        <Text style={styles.bannerSub}>CNN + ViT Disease Detection · 96.8% Accuracy</Text>
+        <View style={{ flex: 1, backgroundColor: '#F5F7F6' }}>
+            <ScrollView style={styles.container} contentContainerStyle={[styles.scroll, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false}>
+                {/* Header Banner */}
+                <LinearGradient colors={['#0F4D31', '#166534']} style={[styles.banner, { paddingTop: insets.top + 20 }]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.md, flex: 1 }}>
+                        <Text style={styles.bannerIcon}>🔬</Text>
+                        <View>
+                            <Text style={styles.bannerTitle}>Crop Health Agent</Text>
+                            <Text style={styles.bannerSub}>Multimodal AI Inference</Text>
+                        </View>
                     </View>
+                    <TouchableOpacity style={styles.langBtn} activeOpacity={0.7} onPress={() => setLangModalVisible(true)}>
+                        <Text style={{ fontSize: 20 }}>🌐</Text>
+                    </TouchableOpacity>
+                </LinearGradient>
+
+                {/* KPIs */}
+                <View style={styles.kpiRow}>
+                    {[
+                        { icon: '🌳', label: 'Trees', value: '1,240', color: COLORS.primary },
+                        { icon: '⚠️', label: 'Diseased', value: '46', color: COLORS.danger },
+                        { icon: '✅', label: 'Treated', value: '31', color: COLORS.success },
+                        { icon: '🎯', label: 'Accuracy', value: '96.8%', color: COLORS.info },
+                    ].map((k) => (
+                        <View key={k.label} style={[styles.miniKpi, { borderTopColor: k.color, borderTopWidth: 3 }]}>
+                            <Text style={{ fontSize: 18 }}>{k.icon}</Text>
+                            <Text style={[styles.miniVal, { color: k.color }]}>{k.value}</Text>
+                            <Text style={styles.miniLabel}>{k.label}</Text>
+                        </View>
+                    ))}
                 </View>
-                <TouchableOpacity style={styles.langBtn} activeOpacity={0.7}>
-                    <Text style={{ fontSize: 20 }}>🌐</Text>
-                </TouchableOpacity>
-            </LinearGradient>
 
-            {/* KPIs */}
-            <View style={styles.kpiRow}>
-                {[
-                    { icon: '🌳', label: 'Trees', value: '1,240', color: COLORS.primary },
-                    { icon: '⚠️', label: 'Diseased', value: '46', color: COLORS.danger },
-                    { icon: '✅', label: 'Treated', value: '31', color: COLORS.success },
-                    { icon: '🎯', label: 'Accuracy', value: '96.8%', color: COLORS.info },
-                ].map((k) => (
-                    <View key={k.label} style={[styles.miniKpi, { borderTopColor: k.color, borderTopWidth: 3 }]}>
-                        <Text style={{ fontSize: 18 }}>{k.icon}</Text>
-                        <Text style={[styles.miniVal, { color: k.color }]}>{k.value}</Text>
-                        <Text style={styles.miniLabel}>{k.label}</Text>
+                {/* Leaf Scanner */}
+                <SectionHeader title={`📷 ${t('scannow')}`} sub="Upload leaf photo & describe symptoms" />
+                <Card>
+                    <TouchableOpacity style={styles.dropZone} onPress={pickImage} activeOpacity={0.85}>
+                        {image ? (
+                            <Image source={{ uri: image }} style={styles.leafImage} resizeMode="cover" />
+                        ) : (
+                            <View style={styles.dropPlaceholder}>
+                                <Text style={{ fontSize: 44, marginBottom: 8 }}>🍃</Text>
+                                <Text style={styles.dropText}>{t('scannow')}</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+
+                    {/* Multimodal Input */}
+                    <View style={styles.inputStack}>
+                        <Text style={styles.inputLabel}>{t('symptoms')} (Optional):</Text>
+                        <TextInput 
+                            placeholder="e.g. Yellow spots on edges..."
+                            placeholderTextColor={COLORS.textHint}
+                            style={styles.textInput}
+                            value={symptoms}
+                            onChangeText={setSymptoms}
+                            multiline
+                        />
                     </View>
-                ))}
-            </View>
 
-            {/* Leaf Scanner */}
-            <SectionHeader title="📷 Leaf Disease Scanner" sub="Take or upload a leaf photo" />
-            <Card>
-                {/* Drop Zone */}
-                <TouchableOpacity style={styles.dropZone} onPress={pickImage} activeOpacity={0.85}>
-                    {image ? (
-                        <Image source={{ uri: image }} style={styles.leafImage} resizeMode="cover" />
-                    ) : (
-                        <View style={styles.dropPlaceholder}>
-                            <Text style={{ fontSize: 44, marginBottom: 8 }}>🍃</Text>
-                            <Text style={styles.dropText}>Tap to upload a leaf photo</Text>
-                            <Text style={styles.dropHint}>JPG · PNG · HEIC</Text>
+                    <View style={{ flexDirection: 'row', gap: SPACING.sm, marginTop: SPACING.sm }}>
+                        <Button label={t('analyzeText')} onPress={takePhoto} variant="primary" style={{ flex: 1 }} />
+                        <Button label="🖼 Gallery" onPress={pickImage} variant="outline" style={{ flex: 1 }} />
+                    </View>
+
+                    {analyzing && (
+                        <View style={styles.analyzing}>
+                            <ActivityIndicator size="large" color={COLORS.primary} />
+                            <Text style={styles.analyzingText}>AI Analysis...</Text>
                         </View>
                     )}
-                </TouchableOpacity>
 
-                <View style={{ flexDirection: 'row', gap: SPACING.sm, marginTop: SPACING.sm }}>
-                    <Button label="📷 Camera" onPress={takePhoto} variant="primary" style={{ flex: 1 }} />
-                    <Button label="🖼 Gallery" onPress={pickImage} variant="outline" style={{ flex: 1 }} />
-                </View>
-
-                {/* Analyzing */}
-                {analyzing && (
-                    <View style={styles.analyzing}>
-                        <ActivityIndicator size="large" color={COLORS.primary} />
-                        <Text style={styles.analyzingText}>Running EfficientNet + ViT ensemble…</Text>
-                        <Text style={{ fontSize: FONTS.sizes.xs, color: COLORS.textLight, textAlign: 'center' }}>Checking 38 disease patterns</Text>
-                    </View>
-                )}
-
-                {/* Result */}
-                {result && !analyzing && (
-                    <View style={styles.resultBox}>
-                        <View style={styles.resultHeader}>
-                            <View>
-                                <Text style={styles.resultDisease}>🦠 {result.disease}</Text>
-                                <Text style={styles.resultPathogen}>{result.pathogen}</Text>
+                    {result && !analyzing && (
+                        <View style={styles.resultBox}>
+                            <View style={styles.resultHeader}>
+                                <View>
+                                    <Text style={styles.resultDisease}>🦠 {result.disease}</Text>
+                                    <Text style={styles.resultPathogen}>{result.pathogen}</Text>
+                                </View>
+                                <Badge label={`${result.confidence}%`} type="warning" />
                             </View>
-                            <Badge label={`${result.confidence}%`} type="warning" />
-                        </View>
-                        <View style={{ flexDirection: 'row', gap: 6, marginVertical: SPACING.sm }}>
-                            <Badge label={result.severity} type="danger" />
-                            <Badge label={result.stage} type="info" />
-                            <Badge label={`Spread: ${result.spread}`} type="warning" />
-                        </View>
-                        <Text style={styles.resultLabel}>💊 Treatment:</Text>
-                        <Text style={styles.resultTreatment}>{result.treatment}</Text>
-                        <View style={styles.mlBox}>
-                            <Text style={styles.mlText}>🌿 {result.malayalam}</Text>
-                        </View>
-                    </View>
-                )}
-            </Card>
-
-            {/* Disease Registry */}
-            <SectionHeader title="🗒 Active Disease Registry" />
-            {activeRegistry.map((d, i) => (
-                <Card key={i} style={{ marginBottom: SPACING.sm }}>
-                    <View style={styles.diseaseRow}>
-                        <View style={{ flex: 1 }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                <View style={[styles.dot, { backgroundColor: d.type === 'danger' ? COLORS.danger : d.type === 'warning' ? COLORS.warning : COLORS.success }]} />
-                                <Text style={styles.diseaseName}>{d.name}</Text>
+                            <Text style={styles.resultLabel}>{t('treatmentLabel')}:</Text>
+                            <Text style={styles.resultTreatment}>{result.treatment}</Text>
+                            <View style={styles.mlBox}>
+                                <Text style={styles.mlText}>🌿 {result.malayalam}</Text>
                             </View>
-                            <Text style={styles.diseasePathogen}>{d.pathogen}</Text>
-                            <Text style={styles.diseaseTrees}>{d.trees} trees affected</Text>
                         </View>
-                        <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                            <Badge label={d.severity} type={d.type} />
-                            <View style={styles.confBar}>
-                                <View style={[styles.confFill, { width: `${d.confidence}%`, backgroundColor: d.type === 'danger' ? COLORS.danger : d.type === 'warning' ? COLORS.warning : COLORS.success }]} />
-                            </View>
-                            <Text style={styles.confText}>{d.confidence}% conf.</Text>
-                        </View>
-                    </View>
+                    )}
                 </Card>
-            ))}
 
-            <View style={{ height: SPACING.xl }} />
-        </ScrollView>
+                <SectionHeader title="🗒 Recent Detections" />
+                {activeRegistry.map((d, i) => (
+                    <Card key={i} style={{ marginBottom: SPACING.sm }}>
+                        <View style={styles.diseaseRow}>
+                            <View style={{ flex: 1 }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                    <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: d.type === 'danger' ? COLORS.danger : d.type === 'warning' ? COLORS.warning : COLORS.success }} />
+                                    <Text style={styles.diseaseName}>{d.name}</Text>
+                                </View>
+                                <Text style={styles.diseasePathogen}>{d.pathogen}</Text>
+                            </View>
+                            <Badge label={d.severity} type={d.type} />
+                        </View>
+                    </Card>
+                ))}
+            </ScrollView>
+
+            {/* Language Modal */}
+            <Modal visible={langModalVisible} transparent animationType="fade" onRequestClose={() => setLangModalVisible(false)}>
+                <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setLangModalVisible(false)}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Choose Language</Text>
+                        <FlatList 
+                            data={languages}
+                            keyExtractor={item => item.code}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity 
+                                    style={styles.langItem}
+                                    onPress={() => { setLang(item.code); setLangModalVisible(false); }}
+                                >
+                                    <Text style={{ fontSize: 24 }}>{item.flag}</Text>
+                                    <Text style={styles.langLabel}>{item.label}</Text>
+                                </TouchableOpacity>
+                            )}
+                        />
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.offWhite },
-    scroll: { padding: SPACING.md },
-    banner: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, padding: SPACING.lg, borderRadius: RADIUS.lg, marginBottom: SPACING.md },
+    container: { flex: 1 },
+    scroll: { paddingHorizontal: 20 },
+    banner: { marginHorizontal: -20, paddingHorizontal: 20, paddingBottom: 40, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, marginBottom: 20 },
     bannerIcon: { fontSize: 36 },
-    bannerTitle: { fontSize: FONTS.sizes.lg, fontWeight: '800', color: COLORS.white },
-    bannerSub: { fontSize: FONTS.sizes.xs, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+    bannerTitle: { fontSize: 22, fontWeight: '800', color: COLORS.white },
+    bannerSub: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
     langBtn: {
-        width: 40, height: 40, borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.18)',
+        width: 44, height: 44, borderRadius: 14,
+        backgroundColor: 'rgba(255,255,255,0.12)',
         alignItems: 'center', justifyContent: 'center',
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
     },
     kpiRow: { flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.md },
     miniKpi: { flex: 1, backgroundColor: COLORS.white, borderRadius: RADIUS.md, padding: 10, alignItems: 'center', ...SHADOW.card },
     miniVal: { fontSize: FONTS.sizes.md, fontWeight: '800', marginTop: 4 },
     miniLabel: { fontSize: 10, color: COLORS.textLight, marginTop: 2 },
-    dropZone: { borderWidth: 2, borderColor: COLORS.border, borderStyle: 'dashed', borderRadius: RADIUS.md, overflow: 'hidden', minHeight: 160 },
-    leafImage: { width: '100%', height: 200, borderRadius: RADIUS.md - 2 },
+    dropZone: { borderWidth: 2, borderColor: COLORS.border, borderStyle: 'dashed', borderRadius: RADIUS.md, overflow: 'hidden', minHeight: 140 },
+    leafImage: { width: '100%', height: 200 },
     dropPlaceholder: { alignItems: 'center', justifyContent: 'center', padding: SPACING.xl },
     dropText: { fontSize: FONTS.sizes.base, color: COLORS.textGray, fontWeight: '600' },
-    dropHint: { fontSize: FONTS.sizes.xs, color: COLORS.textHint, marginTop: 4 },
-    analyzing: { alignItems: 'center', paddingVertical: SPACING.lg, gap: SPACING.sm },
+    inputStack: { marginTop: SPACING.md },
+    inputLabel: { fontSize: 12, color: COLORS.textGray, fontWeight: '700', marginBottom: 6 },
+    textInput: { backgroundColor: '#F0F3F2', borderRadius: RADIUS.sm, padding: 12, fontSize: 14, color: COLORS.textDark, textAlignVertical: 'top', minHeight: 60 },
+    analyzing: { alignItems: 'center', paddingVertical: SPACING.lg },
     analyzingText: { fontSize: FONTS.sizes.sm, color: COLORS.textGray, fontWeight: '600' },
     resultBox: { marginTop: SPACING.md, padding: SPACING.md, backgroundColor: '#FFF3E0', borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.accentMid },
-    resultHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+    resultHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
     resultDisease: { fontSize: FONTS.sizes.md, fontWeight: '800', color: COLORS.textDark },
-    resultPathogen: { fontSize: FONTS.sizes.xs, color: COLORS.textGray, fontStyle: 'italic', marginTop: 2 },
+    resultPathogen: { fontSize: FONTS.sizes.xs, color: COLORS.textGray, fontStyle: 'italic' },
     resultLabel: { fontSize: FONTS.sizes.sm, fontWeight: '700', color: COLORS.primary, marginBottom: 4 },
     resultTreatment: { fontSize: FONTS.sizes.sm, color: COLORS.textDark, lineHeight: 20, marginBottom: SPACING.sm },
     mlBox: { backgroundColor: COLORS.primaryPale, padding: SPACING.sm, borderRadius: RADIUS.sm },
     mlText: { fontSize: FONTS.sizes.sm, color: COLORS.textMid, lineHeight: 22 },
     diseaseRow: { flexDirection: 'row', alignItems: 'center' },
-    dot: { width: 9, height: 9, borderRadius: 5 },
     diseaseName: { fontSize: FONTS.sizes.base, fontWeight: '700', color: COLORS.textDark },
     diseasePathogen: { fontSize: FONTS.sizes.xs, color: COLORS.textGray, fontStyle: 'italic' },
-    diseaseTrees: { fontSize: FONTS.sizes.xs, color: COLORS.textLight, marginTop: 2 },
-    confBar: { width: 60, height: 4, backgroundColor: COLORS.border, borderRadius: 2, overflow: 'hidden' },
-    confFill: { height: '100%', borderRadius: 2 },
-    confText: { fontSize: 10, color: COLORS.textLight },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+    modalContent: { width: '80%', backgroundColor: 'white', borderRadius: 24, padding: 24, ...SHADOW.card },
+    modalTitle: { fontSize: 20, fontWeight: '800', color: '#1a1a1a', marginBottom: 20, textAlign: 'center' },
+    langItem: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+    langLabel: { fontSize: 16, fontWeight: '600', color: '#333' },
 });

@@ -1,47 +1,49 @@
 'use client';
 
-export default function StatCard({ icon, label, value, sub, color = '#34d399', trend }) {
+export default function StatCard({ icon, label, value, sub, color = 'emerald', trend }) {
     const colors = {
-        emerald: '#34d399',
-        amber: '#fbbf24',
-        sky: '#38bdf8',
-        rose: '#fb7185',
-        violet: '#a78bfa',
+        emerald: '#006d44',
+        amber: '#f59e0b',
+        sky: '#0ea5e9',
+        rose: '#f43f5e',
+        violet: '#8b5cf6',
     };
     const c = colors[color] || color;
 
     return (
-        <div className="glass-card" style={{ padding: '20px', position: 'relative', overflow: 'hidden' }}>
+        <div className="glass-card" style={{ padding: '24px', position: 'relative', overflow: 'hidden' }}>
             {/* Glow orb */}
             <div style={{
-                position: 'absolute', top: '-20px', right: '-20px',
-                width: '80px', height: '80px', borderRadius: '50%',
-                background: c, opacity: 0.08, filter: 'blur(20px)',
+                position: 'absolute', top: '-10px', right: '-10px',
+                width: '100px', height: '100px', borderRadius: '50%',
+                background: c, opacity: 0.05, filter: 'blur(30px)',
             }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '8px', fontWeight: 500 }}>{label}</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#f1f5f9', fontFamily: 'Space Grotesk, sans-serif', lineHeight: 1 }}>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{label}</div>
+                    <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--gray-900)', fontFamily: 'var(--font-heading)', lineHeight: 1 }}>
                         {value}
                     </div>
-                    {sub && <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '6px' }}>{sub}</div>}
-                    {trend && (
+                    {sub && <div style={{ fontSize: '0.8rem', color: 'var(--gray-400)', marginTop: '8px', fontWeight: 500 }}>{sub}</div>}
+                    {trend !== undefined && (
                         <div style={{
-                            display: 'inline-flex', alignItems: 'center', gap: '3px',
-                            marginTop: '8px', fontSize: '0.78rem', fontWeight: 600,
-                            color: trend > 0 ? '#34d399' : '#fb7185',
+                            display: 'inline-flex', alignItems: 'center', gap: '4px',
+                            marginTop: '12px', fontSize: '0.8rem', fontWeight: 700,
+                            color: trend > 0 ? '#10b981' : '#f43f5e',
+                            background: trend > 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(244, 63, 94, 0.1)',
+                            padding: '2px 8px',
+                            borderRadius: '20px',
                         }}>
-                            {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
-                            <span style={{ color: '#64748b', fontWeight: 400 }}> vs last week</span>
+                            {trend > 0 ? '↗' : '↘'} {Math.abs(trend)}%
                         </div>
                     )}
                 </div>
                 <div style={{
-                    width: '44px', height: '44px', borderRadius: '12px',
-                    background: `rgba(${hexToRgb(c)}, 0.12)`,
-                    border: `1px solid rgba(${hexToRgb(c)}, 0.25)`,
+                    width: '48px', height: '48px', borderRadius: '16px',
+                    background: `rgba(${hexToRgb(c)}, 0.1)`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '20px',
+                    fontSize: '22px',
+                    boxShadow: `0 8px 20px rgba(${hexToRgb(c)}, 0.08)`,
                 }}>
                     {icon}
                 </div>

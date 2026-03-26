@@ -112,22 +112,32 @@ const DiseasePredictor = () => {
     };
 
     return (
-        <div style={{ padding: '24px', maxWidth: '700px', margin: 'auto', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(10px)', borderRadius: '20px', border: '1px solid rgba(14, 165, 233, 0.2)', color: '#f1f5f9', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)' }}>
-            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: '0 0 8px 0', background: 'linear-gradient(135deg, #38bdf8, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+        <div className="glass-card" style={{ maxWidth: '800px', margin: 'auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                <h1 style={{ fontSize: '2rem', fontWeight: 800, margin: '0 0 12px 0', color: 'var(--primary-green)', fontFamily: 'var(--font-heading)' }}>
                     🍂 Rubber Leaf Scanner
                 </h1>
-                <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Upload a photo to detect diseases instantly</p>
+                <p style={{ color: 'var(--gray-500)', fontSize: '1rem', fontWeight: 500 }}>Upload a photo to detect diseases instantly</p>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div style={{ border: '2px dashed rgba(148, 163, 184, 0.3)', borderRadius: '16px', padding: '30px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.3s', position: 'relative' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div style={{ 
+                    border: '2px dashed var(--gray-200)', 
+                    borderRadius: '24px', 
+                    padding: '40px', 
+                    textAlign: 'center', 
+                    cursor: 'pointer', 
+                    transition: 'all 0.3s', 
+                    position: 'relative',
+                    background: 'var(--bg-offwhite)'
+                }}>
                     {imagePreview ? (
-                        <img src={imagePreview} alt="Preview" style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '12px' }} />
+                        <img src={imagePreview} alt="Preview" style={{ width: '100%', maxHeight: '400px', objectFit: 'contain', borderRadius: '16px' }} />
                     ) : (
                         <div style={{ padding: '20px' }}>
-                            <div style={{ fontSize: '48px', marginBottom: '12px' }}>📷</div>
-                            <p style={{ fontWeight: 600 }}>Click to capture or upload</p>
+                            <div style={{ fontSize: '64px', marginBottom: '16px' }}>📷</div>
+                            <p style={{ fontWeight: 700, color: 'var(--gray-600)', fontSize: '1.1rem' }}>Click to capture or upload</p>
+                            <p style={{ color: 'var(--gray-400)', fontSize: '0.85rem', marginTop: '4px' }}>Supports JPG, PNG, WEBP</p>
                         </div>
                     )}
                     <input 
@@ -138,44 +148,52 @@ const DiseasePredictor = () => {
                     />
                 </div>
 
-                {!session && <p style={{ color: '#fbbf24', textAlign: 'center' }}>⚙️ Initialising AI engine...</p>}
+                {!session && <p style={{ color: 'var(--amber-500)', textAlign: 'center', fontWeight: 600 }}>⚙️ Initialising AI engine...</p>}
                 
                 {loading && (
-                    <div style={{ textAlign: 'center', padding: '10px' }}>
-                        <div style={{ display: 'inline-block', width: '20px', height: '20px', border: '3px solid rgba(56, 189, 248, 0.3)', borderTopColor: '#38bdf8', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                        <p style={{ marginTop: '8px', fontWeight: 600, color: '#38bdf8' }}>🔍 Analyzing leaf patterns...</p>
+                    <div style={{ textAlign: 'center', padding: '20px' }}>
+                        <div style={{ display: 'inline-block', width: '32px', height: '32px', border: '4px solid rgba(0, 109, 68, 0.1)', borderTopColor: 'var(--primary-green)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                        <p style={{ marginTop: '12px', fontWeight: 700, color: 'var(--primary-green)' }}>🔍 Analyzing leaf patterns...</p>
                     </div>
                 )}
 
                 {result && (
-                    <div style={{ marginTop: '10px', animation: 'fadeIn 0.5s ease-out' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(56, 189, 248, 0.1)', padding: '12px 20px', borderRadius: '12px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                    <div style={{ marginTop: '10px', animation: 'fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}>
+                        <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center', 
+                            background: result.disease === 'Healthy' ? 'rgba(34, 197, 94, 0.08)' : 'rgba(244, 63, 94, 0.08)', 
+                            padding: '20px 24px', 
+                            borderRadius: '20px', 
+                            border: `1px solid ${result.disease === 'Healthy' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(244, 63, 94, 0.15)'}` 
+                        }}>
                             <div>
-                                <h2 style={{ margin: 0, fontSize: '1.2rem', color: result.disease === 'Healthy' ? '#34d399' : '#fb7185' }}>
+                                <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: result.disease === 'Healthy' ? '#15803d' : '#be123c' }}>
                                     {result.disease}
                                 </h2>
-                                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Confidence: {result.confidence}%</span>
+                                <span style={{ fontSize: '0.9rem', color: 'var(--gray-500)', fontWeight: 600 }}>Confidence: {result.confidence}%</span>
                             </div>
-                            <div style={{ fontSize: '24px' }}>{result.disease === 'Healthy' ? '✅' : '⚠️'}</div>
+                            <div style={{ fontSize: '32px' }}>{result.disease === 'Healthy' ? '✅' : '⚠️'}</div>
                         </div>
 
-                        <div style={{ marginTop: '20px', display: 'grid', gap: '16px' }}>
-                            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px' }}>
-                                <h3 style={{ fontSize: '0.9rem', color: '#38bdf8', marginTop: 0, fontWeight: 700 }}>📋 Overview</h3>
-                                <p style={{ fontSize: '0.9rem', color: '#cbd5e1', margin: '4px 0 0 0', lineHeight: 1.5 }}>{result.advisory.overview}</p>
+                        <div style={{ marginTop: '24px', display: 'grid', gap: '20px' }}>
+                            <div style={{ background: 'var(--bg-offwhite)', padding: '20px', borderRadius: '20px' }}>
+                                <h3 style={{ fontSize: '1rem', color: 'var(--sky-500)', marginTop: 0, fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>📋 Overview</h3>
+                                <p style={{ fontSize: '1rem', color: 'var(--gray-700)', margin: '8px 0 0 0', lineHeight: 1.6 }}>{result.advisory.overview}</p>
                             </div>
 
-                            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px' }}>
-                                <h3 style={{ fontSize: '0.9rem', color: '#34d399', marginTop: 0, fontWeight: 700 }}>💊 Treatment</h3>
-                                <ul style={{ paddingLeft: '18px', margin: '8px 0 0 0', color: '#cbd5e1', fontSize: '0.9rem' }}>
-                                    {result.advisory.treatment.map((t, i) => <li key={i} style={{ marginBottom: '4px' }}>{t}</li>)}
+                            <div style={{ background: 'var(--bg-offwhite)', padding: '20px', borderRadius: '20px' }}>
+                                <h3 style={{ fontSize: '1rem', color: 'var(--primary-green)', marginTop: 0, fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>💊 Treatment</h3>
+                                <ul style={{ paddingLeft: '20px', margin: '12px 0 0 0', color: 'var(--gray-700)', fontSize: '1rem' }}>
+                                    {result.advisory.treatment.map((t, i) => <li key={i} style={{ marginBottom: '8px', lineHeight: 1.5 }}>{t}</li>)}
                                 </ul>
                             </div>
 
-                            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px' }}>
-                                <h3 style={{ fontSize: '0.9rem', color: '#fbbf24', marginTop: 0, fontWeight: 700 }}>🛡️ Prevention</h3>
-                                <ul style={{ paddingLeft: '18px', margin: '8px 0 0 0', color: '#cbd5e1', fontSize: '0.9rem' }}>
-                                    {result.advisory.prevention.map((p, i) => <li key={i} style={{ marginBottom: '4px' }}>{p}</li>)}
+                            <div style={{ background: 'var(--bg-offwhite)', padding: '20px', borderRadius: '20px' }}>
+                                <h3 style={{ fontSize: '1rem', color: 'var(--amber-500)', marginTop: 0, fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>🛡️ Prevention</h3>
+                                <ul style={{ paddingLeft: '20px', margin: '12px 0 0 0', color: 'var(--gray-700)', fontSize: '1rem' }}>
+                                    {result.advisory.prevention.map((p, i) => <li key={i} style={{ marginBottom: '8px', lineHeight: 1.5 }}>{p}</li>)}
                                 </ul>
                             </div>
                         </div>
