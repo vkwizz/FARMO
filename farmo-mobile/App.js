@@ -3,15 +3,14 @@ import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { LanguageProvider } from './src/contexts/LanguageContext';
 import DashboardScreen from './src/screens/DashboardScreen';
 import CropHealthScreen from './src/screens/CropHealthScreen';
 import WeatherScreen from './src/screens/WeatherScreen';
-import AdvisoryScreen from './src/screens/AdvisoryScreen';
 import ChatScreen from './src/screens/ChatScreen';
-import { COLORS, FONTS, RADIUS, SHADOW } from './src/theme';
+import { COLORS } from './src/theme';
 import { Ionicons } from '@expo/vector-icons';
 
 const Tab = createBottomTabNavigator();
@@ -51,16 +50,38 @@ function MainTabs({ navigation }) {
         },
       }}
     >
-      <Tab.Screen name="Home" component={DashboardWrapper(navigation)}
-        options={{ title: 'Dashboard', tabBarIcon: p => <TabIcon name={p.focused ? "home" : "home-outline"} {...p} /> }} />
-      <Tab.Screen name="CropHealth" component={CropHealthScreen}
-        options={{ title: 'Crop', tabBarIcon: p => <TabIcon name={p.focused ? "leaf" : "leaf-outline"} {...p} /> }} />
-      <Tab.Screen name="Weather" component={WeatherScreen}
-        options={{ title: 'Weather', tabBarIcon: p => <TabIcon name={p.focused ? "stats-chart" : "stats-chart-outline"} {...p} /> }} />
-      <Tab.Screen name="Advisory" component={AdvisoryScreen}
-        options={{ title: 'Advisory', tabBarIcon: p => <TabIcon name={p.focused ? "person" : "person-outline"} {...p} /> }} />
-      <Tab.Screen name="Chat" component={ChatScreen}
-        options={{ title: 'Chat', tabBarIcon: p => <TabIcon name={p.focused ? "chatbubble" : "chatbubble-outline"} {...p} /> }} />
+      <Tab.Screen
+        name="Home"
+        component={DashboardWrapper(navigation)}
+        options={{
+          title: 'Dashboard',
+          tabBarIcon: p => <TabIcon name={p.focused ? "home" : "home-outline"} {...p} />
+        }}
+      />
+      <Tab.Screen
+        name="CropHealth"
+        component={CropHealthScreen}
+        options={{
+          title: 'Crop',
+          tabBarIcon: p => <TabIcon name={p.focused ? "leaf" : "leaf-outline"} {...p} />
+        }}
+      />
+      <Tab.Screen
+        name="Weather"
+        component={WeatherScreen}
+        options={{
+          title: 'Weather',
+          tabBarIcon: p => <TabIcon name={p.focused ? "stats-chart" : "stats-chart-outline"} {...p} />
+        }}
+      />
+      <Tab.Screen
+        name="Chat"
+        component={ChatScreen}
+        options={{
+          title: 'Chat',
+          tabBarIcon: p => <TabIcon name={p.focused ? "chatbubble" : "chatbubble-outline"} {...p} />
+        }}
+      />
     </Tab.Navigator>
   );
 }
